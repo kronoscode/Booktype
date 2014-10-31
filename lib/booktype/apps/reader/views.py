@@ -20,9 +20,9 @@ from django.views import static
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
-from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404
+from django.http import HttpResponseForbidden, Http404
 from django.utils.translation import ugettext_lazy as _
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import DetailView, DeleteView, UpdateView
 
 from braces.views import LoginRequiredMixin
@@ -44,6 +44,46 @@ class BaseReaderView(object):
     slug_field = 'url_title'
     slug_url_kwarg = 'bookid'
     context_object_name = 'book'
+    not_found = False
+
+    def get(self, request, *args, **kwargs):
+        try:
+            return super(BaseReaderView, self).get(request, *args, **kwargs)
+        except Http404:
+            self.not_found = True
+            context = dict(
+                not_found_object=_("Book"),
+                object_name=self.kwargs['bookid']
+            )
+            return self.render_to_response(context)
+
+    def get_template_names(self):
+        if self.not_found:
+            return "reader/errors/_does_not_exist.html"
+        return super(BaseReaderView, self).get_template_names()
+
+    def render_to_response(self, context, **response_kwargs):
+        if self.not_found:
+            response_kwargs.setdefault('status', 404)
+            context.update({
+                'request': self.request,
+                'page_title': _("%(object)s not found!") % {'object': context['not_found_object']},
+                'title': _("Error 404")
+            })
+        return super(BaseReaderView, self).render_to_response(context, **response_kwargs)
+
+
+class PublishedBookView(BaseReaderView, BasePageView, DetailView):
+    # TODO: implement functionality when book is marked as published
+    template_name = "reader/book_published.html"
+    
+    def render_to_response(self, context, **response_kwargs):
+        try:
+            book = self.get_object()
+            if book:
+                return redirect('reader:infopage', bookid=book.url_title)
+        except:
+            return super(PublishedBookView, self).render_to_response(context, **response_kwargs)
 
 
 class InfoPageView(BaseReaderView, BasePageView, DetailView):
@@ -67,7 +107,7 @@ class InfoPageView(BaseReaderView, BasePageView, DetailView):
         return context
 
 
-class GenericRedirectView(object):
+class SingleNextMixin(object):
     """
     Just adds a next attribute to be used as redirect value
     after post action
@@ -75,15 +115,15 @@ class GenericRedirectView(object):
 
     def dispatch(self, request, *args, **kwargs):
         self.next = request.REQUEST.get('next', None)
-        return super(GenericRedirectView, self).dispatch(request, *args, **kwargs)
+        return super(SingleNextMixin, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super(GenericRedirectView, self).get_context_data(**kwargs)
+        context = super(SingleNextMixin, self).get_context_data(**kwargs)
         context['next'] = self.next
         return context
 
 
-class EditBookInfoView(GenericRedirectView, LoginRequiredMixin, BaseReaderView, UpdateView):
+class EditBookInfoView(SingleNextMixin, LoginRequiredMixin, BaseReaderView, UpdateView):
     template_name = "reader/book_info_edit.html"
     form_class = EditBookInfoForm
     context_object_name = 'book'
@@ -107,7 +147,7 @@ class EditBookInfoView(GenericRedirectView, LoginRequiredMixin, BaseReaderView, 
         return self.render_to_response(context=self.get_context_data())
 
 
-class DeleteBookView(GenericRedirectView, LoginRequiredMixin, BaseReaderView, DeleteView):
+class DeleteBookView(SingleNextMixin, LoginRequiredMixin, BaseReaderView, DeleteView):
     template_name = "reader/book_delete.html"
 
     def post(self, *args, **kwargs):
@@ -127,6 +167,7 @@ class DeleteBookView(GenericRedirectView, LoginRequiredMixin, BaseReaderView, De
 
         return self.render_to_response(context=self.get_context_data())
 
+
 class DraftChapterView(BaseReaderView, BasePageView, DetailView):
     template_name = "reader/book_draft_page.html"
     page_title = _("Chapter Draft")
@@ -145,7 +186,15 @@ class DraftChapterView(BaseReaderView, BasePageView, DetailView):
             return HttpResponseForbidden()
 
         if 'chapter' in self.kwargs:
-            content = get_object_or_404(Chapter, version=book_version, url_title=self.kwargs['chapter'])
+            try:
+                content = get_object_or_404(Chapter, version=book_version, url_title=self.kwargs['chapter'])
+            except Http404:
+                self.not_found = True
+                context = dict(
+                    not_found_object=_("Chapter"),
+                    object_name=self.kwargs['chapter']
+                )
+                return context
 
         toc_items = BookToc.objects.filter(version=book_version).order_by("-weight")
         
@@ -162,6 +211,7 @@ class DraftChapterView(BaseReaderView, BasePageView, DetailView):
 
         return context
 
+
 class FullView(BaseReaderView, BasePageView, DetailView):
     template_name = "reader/book_full_view.html"
     page_title = _("Book full view")
@@ -177,6 +227,7 @@ class FullView(BaseReaderView, BasePageView, DetailView):
         context['toc_items'] = toc_items
 
         return context
+
 
 class BookCoverView(BaseReaderView, DetailView):
     """

@@ -2,9 +2,12 @@ import datetime
 
 from django.db import models
 from django.utils import timezone
+from django.contrib import messages
 from django.contrib.auth.models import User
+from django.views.generic import DeleteView
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.views.generic.edit import CreateView, UpdateView
 
 from braces.views import LoginRequiredMixin
@@ -200,6 +203,55 @@ class GroupUpdateView(LoginRequiredMixin, BasePageView, UpdateView):
             return views.ErrorPage(request, "errors/nopermissions.html")
 
         return super(GroupUpdateView, self).dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial_dict = super(GroupUpdateView, self).get_initial()
+        group = self.get_object()
+        group_image = group.get_big_group_image()
+
+        if group_image:
+            initial_dict['group_image'] = group_image
+        return initial_dict
+
+    def form_valid(self, form):
+        response = super(GroupUpdateView, self).form_valid(form)
+        if form.data.get('group_image_remove', False) and not form.files.get('group_image'):
+            form.instance.remove_group_images()
+        return response
+
+
+class GroupDeleteView(LoginRequiredMixin, DeleteView):
+    model = BookiGroup
+    slug_field = 'url_name'
+    slug_url_kwarg = 'groupid'
+    context_object_name = 'group'
+    template_name = 'portal/group_delete_modal.html'
+
+    def delete(self, request, *args, **kwargs):
+        user = self.request.user
+        group = self.get_object()
+        group_security = security.get_user_security_for_group(user, group)
+
+        if group.owner != user and not user.is_superuser or not group_security.is_group_admin():
+            messages.warning(self.request, _("You are not allowed to delete this group"))
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            # remove books from group
+            for book in group.book_set.all():
+                book.group = None
+                book.save()
+
+            # delete group images if needed
+            try:
+                group.remove_group_images()
+            except Exception as e:
+                print e
+
+            messages.success(self.request, _('Group successfully deleted.'))
+        return super(GroupDeleteView, self).delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse('accounts:view_profile', args=[self.request.user.username])
 
 
 class PeoplePageView(PageView):

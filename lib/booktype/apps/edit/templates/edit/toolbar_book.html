@@ -1,19 +1,16 @@
 {% load i18n %}
 <h1>{{ book.title }}</h1>
-<div class="btn-toolbar float-right">
-
-  <div class="btn-group" data-toggle="buttons">
-	 <label class="btn btn-default">
-	   <input type="radio" name="panelname" id="button-toc" rel="tooltip" data-original-title="{% trans "Table Of Contents" %}"><i class="icon-list-alt"></i> 
-	 </label>
-	 <label class="btn btn-default">
-	   <input type="radio" name="panelname" id="button-media" rel="tooltip" data-original-title="{% trans "Media" %}"><i class="icon-picture"></i>
-	 </label>
-	 <label class="btn btn-default">
-	   <input type="radio" name="panelname" id="button-cover" rel="tooltip" data-original-title="{% trans "Cover Manager" %}"><i class="icon-tablet"></i>
-	 </label>
-	 <label class="btn btn-default">
-	   <input type="radio" name="panelname" id="button-publish" rel="tooltip" data-original-title="{% trans "Publishing" %}"><i class="icon-print"></i>
-	 </label>
- </div>
+<div class="btn-toolbar float-right">      
+    <div class="btn-group">
+      <button type="button" class="btn btn-default" title="" id="button-toc" data-original-title="{% trans 'Table Of Contents' %}" rel="tooltip" data-placement="bottom"><i class="bk-icon-toc"></i></button>
+      <button type="button" class="btn btn-default" title="" id="button-media" data-original-title="{% trans 'Media' %}" rel="tooltip" data-placement="bottom"><i class="bk-icon-media"></i></button>        
+      <button type="button" class="btn btn-default" title="" id="button-cover" data-original-title="{% trans 'Cover Manager' %}" rel="tooltip" data-placement="bottom"><i class="bk-icon-cover"></i></button>
+    </div>
+    <div class="btn-group float-right"> 
+      <button type="button" class="btn btn-default" title="" id="button-history" data-original-title="{% trans 'Book History' %}" rel="tooltip" data-placement="bottom"><i class="bk-icon-history"></i></button>
+      <button type="button" class="btn btn-default" title="" id="button-settings" data-original-title="{% trans 'Settings' %}" rel="tooltip" data-placement="bottom"><i class="bk-icon-settings"></i></button>          
+    </div>
+    <div class="btn-group">            
+      <button type="button" class="btn btn-primary" id="button-publish" title="">{% trans 'Publish' %}</button> 
+    </div>
 </div>

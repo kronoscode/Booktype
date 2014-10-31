@@ -13,23 +13,24 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with Booktype.  If not, see <http://www.gnu.org/licenses/>.
+import os
+import time
+import datetime
 
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 from django.contrib.auth import models as auth_models
+from django.utils.translation import ugettext_lazy as _
 
 import booki.editor.signals
 
-from django.conf import settings
-
-import datetime
-import os
 
 # License
 
 class License(models.Model):
     name = models.CharField(_('name'), max_length=100, blank=False)
     abbrevation = models.CharField(_('abbrevation'), max_length=30)
+    url = models.URLField(_('url'), blank=True, null=True)
 
     def __unicode__(self):
         return self.name
@@ -129,12 +130,26 @@ class BookiGroup(models.Model):
 
         return group_image
 
+    def remove_group_images(self):
+        group_image_path = '%s/%s' % (settings.MEDIA_ROOT, self.GROUP_IMAGE_UPLOAD_DIR)
+        
+        group_images = []
+        group_images.append('{0}/{1}_small.jpg'.format(group_image_path, self.pk))
+        group_images.append('{0}/{1}.jpg'.format(group_image_path, self.pk))
+
+        for image_path in group_images:
+            try:
+                os.remove(image_path)
+            except Exception as err:
+                # TODO: should log this error
+                print err
+
     def __unicode__(self):
         return self.name
 
     class Meta:
-        verbose_name = _('Booki group')
-        verbose_name_plural = _('Booki groups')
+        verbose_name = _('Booktype group')
+        verbose_name_plural = _('Booktype groups')
 
 # Book
 
@@ -153,7 +168,7 @@ class Book(models.Model):
 
     # or is this suppose to be per project
     # and null=False should be
-    license = models.ForeignKey(License,null=True, verbose_name=_("license"))
+    license = models.ForeignKey(License, null=True, blank=True, verbose_name=_("license"))
 
     created = models.DateTimeField(_('created'), auto_now=False, default=datetime.datetime.now)
     published = models.DateTimeField(_('published'), null=True)
@@ -237,29 +252,31 @@ class Book(models.Model):
 # BookHistory
 
 
-HISTORY_CHOICES = {'unknown': 0,
+HISTORY_CHOICES = {
+    'unknown': 0,
+    
+    'chapter_create': 1,
+    'chapter_save': 2,
+    'chapter_rename': 3,
+    'chapter_reorder': 4,
+    'chapter_split': 5,
+    'chapter_clone': 15,
+    'chapter_delete': 19,
 
-                   'chapter_create': 1,
-                   'chapter_save': 2,
-                   'chapter_rename': 3,
-                   'chapter_reorder': 4,
-                   'chapter_split': 5,
-                   'chapter_clone': 15,
-                   'chapter_delete': 19,
+    'section_create': 6,
+    'section_rename': 7,
+    'section_delete': 20,
 
-                   'section_create': 6,
-                   'section_rename': 7,
+    'book_create': 10,
+    'minor_version': 11,
+    'major_version': 12,
 
-                   'book_create': 10,
-                   'minor_version': 11,
-                   'major_version': 12,
+    'attachment_upload': 13,
+    'attachment_delete': 14,
 
-                   'attachment_upload': 13,
-                   'attachment_delete': 14,
-
-                   'cover_upload': 16,
-                   'cover_delete': 17,
-                   'cover_update': 18
+    'cover_upload': 16,
+    'cover_delete': 17,
+    'cover_update': 18
 }
 
 class BookHistory(models.Model):
@@ -410,11 +427,27 @@ class ChapterHistory(models.Model):
         verbose_name = _('Chapter history')
         verbose_name_plural = ('Chapters history')
 
+    def previous(self):
+        lower = ChapterHistory.objects.filter(
+                    chapter=self.chapter, revision__lt=self.revision
+                ).order_by('-revision')
+        if lower.count() > 0:
+            return lower[0].revision
+        return None
+
+    def next(self):
+        higher = ChapterHistory.objects.filter(chapter=self.chapter, revision__gt=self.revision)
+        if higher.count() > 0:
+            return higher[0].revision
+        return None
 
 # Attachment
 
 def uploadAttachmentTo(att, filename):
     return '%s/books/%s/%s/%s' % (settings.DATA_ROOT, att.book.url_title, att.version.get_version(), filename)
+
+def getAttachmentUrl(att, filename):
+    return '%sbooks/%s/%s/%s' % (settings.DATA_URL, att.book.url_title, att.version.get_version(), filename)
 #    return '%s%s/%s/%s' % (settings.MEDIA_ROOT, att.book.url_title, att.version.get_version(), filename)
 
 
@@ -450,6 +483,22 @@ class Attachment(models.Model):
     def __unicode__(self):
         return self.attachment.name
 
+
+    def thumbnail(self, size=(100, 100)):
+        '''returns URL for a thumbnail with the specified size'''
+        from booki.utils.misc import createThumbnail
+        filename, ext = os.path.splitext(os.path.basename(self.attachment.url))
+        w, h = size
+        filename = '%s_%s_%s_%sx%s%s' % (filename, self.pk,
+                                         time.mktime(self.created.timetuple()),
+                                         w, h, ext)
+        im_path = uploadAttachmentTo(self, filename)
+        im_url =  getAttachmentUrl(self, filename)
+        if not os.path.exists(im_path):
+            im = createThumbnail(self.attachment, size=size)
+            im.save(im_path, 'JPEG')
+        return im_url
+
     class Meta:
         verbose_name = _('Attachment')
         verbose_name_plural = _('Attachments')
@@ -471,6 +520,7 @@ class BookToc(models.Model):
     version = models.ForeignKey(BookVersion, null=False, verbose_name=_("version"))
     # book should be removed
     book = models.ForeignKey(Book, null=False, verbose_name=_("book"))
+    parent = models.ForeignKey('self', null=True, blank=True, verbose_name=_("parent"))
     name = models.CharField(_('name'), max_length=2500, blank=True)
     chapter = models.ForeignKey(Chapter, null=True, blank=True, verbose_name=_("chapter"))
     weight = models.IntegerField(_('weight'))
@@ -481,6 +531,9 @@ class BookToc(models.Model):
 
     def is_chapter(self):
         return self.typeof == 1
+
+    def has_children(self):
+        return (self.booktoc_set.count() > 0)
 
     def url_title(self):
         if self.is_chapter():
@@ -543,7 +596,8 @@ class PublishWizzard(models.Model):
 
 
 def uploadCoverTo(att, filename):
-    return '%s/book_covers/%s' % (settings.DATA_ROOT, att.id)
+    extension = os.path.splitext(filename)[-1].lower()
+    return '%s/book_covers/%s%s' % (settings.DATA_ROOT, att.id, extension)
 
 
 class BookCover(models.Model):

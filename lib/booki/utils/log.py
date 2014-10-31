@@ -1,5 +1,6 @@
 # This file is part of Booktype.
-# Copyright (c) 2012 Aleksandar Erkalovic <aleksandar.erkalovic@sourcefabric.org>
+# Copyright (c) 2012
+# Aleksandar Erkalovic <aleksandar.erkalovic@sourcefabric.org>
 #
 # Booktype is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -15,14 +16,17 @@
 # along with Booktype.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
+import logging
+import traceback
 
 from booki.editor import models
 
-# logBookHistory
 
-def logBookHistory(book = None, version = None, chapter = None, chapter_history = None, args = {}, user=None, kind = 'unknown'):
+def logBookHistory(
+        book=None, version=None, chapter=None,
+        chapter_history=None, args={}, user=None, kind='unknown'):
     """
-    Creates history record for book change. 
+    Creates history record for book change.
 
     @type book: C{booki.editor.models.Book}
     @param book: Book object
@@ -41,22 +45,25 @@ def logBookHistory(book = None, version = None, chapter = None, chapter_history 
     """
 
     try:
-        history = models.BookHistory(book = book,
-                                     version = version,
-                                     chapter = chapter,
-                                     chapter_history = chapter_history,
-                                     args = json.dumps(args),
-                                     user = user,
-                                     kind = models.HISTORY_CHOICES.get(kind, 0))
+        history = models.BookHistory(
+            book=book,
+            version=version,
+            chapter=chapter,
+            chapter_history=chapter_history,
+            args=json.dumps(args),
+            user=user,
+            kind=models.HISTORY_CHOICES.get(kind, 0)
+        )
         history.save()
-
         return history
+
     except ValueError:
         return None
 
-# logChapterHistory
 
-def logChapterHistory(chapter = None, content = None, user = None, comment = '', revision = None):
+def logChapterHistory(
+        chapter=None, content=None,
+        user=None, comment='', revision=None):
     """
     Creates history record for chapter change.
 
@@ -73,17 +80,18 @@ def logChapterHistory(chapter = None, content = None, user = None, comment = '',
     """
 
     try:
-        history = models.ChapterHistory(chapter = chapter,
-                                        content = content,
-                                        user = user,
-                                        revision = revision,
-                                        comment = comment)
+        history = models.ChapterHistory(
+            chapter=chapter,
+            content=content,
+            user=user,
+            revision=revision,
+            comment=comment
+        )
         history.save()
-
         return history
+
     except ValueError:
         return None
-
 
 
 def logError(msg, *args):
@@ -94,8 +102,8 @@ def logError(msg, *args):
     @param msg: Error message
     """
 
-    import logging
     logging.getLogger("booktype").error(msg, *args)
+
 
 def logWarning(msg, *args):
     """
@@ -105,15 +113,14 @@ def logWarning(msg, *args):
     @param msg: Warning message
     """
 
-    import logging
     logging.getLogger("booktype").warning(msg, *args)
+
 
 def printStack(*extra):
     """
     Prints entire stack as error message.
     """
 
-    import traceback
     logError(traceback.format_exc())
     for e in extra:
         logError(e)

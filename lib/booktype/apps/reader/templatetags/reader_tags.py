@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Booktype.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
+
 from django import template
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -30,25 +32,27 @@ ACTIVITY_KIND_VERBOSE = {
     4:  _("Chapter reorder"),
     5:  _("Split chapter"),
     6:  _("Created new section"),
+    7:  _("Renamed section"),
     10: _("Created new book"),
     11: _("Minor version"),
     12: _("Major version"),
     13: _("Uploaded"),
     14: _("Attachment delete"),
     16: _("Upload cover"),
-    19: _("Delete chapter")
+    19: _("Delete chapter"),
+    20: _("Delete section")
 }
 
 @register.assignment_tag
 def verbose_activity(activity):
     # TODO: add docstrings here
 
-    verbose = ACTIVITY_KIND_VERBOSE.get(activity.kind, None)
+    verbose = unicode(ACTIVITY_KIND_VERBOSE.get(activity.kind, None))
     default_image = static('core/img/chapter-default.png')
     link_url = None
     book = activity.book
     book_version = book.version.get_version()
-    
+
     if verbose:
         title = verbose
 
@@ -67,9 +71,12 @@ def verbose_activity(activity):
                 args=[book.url_title, book_version, activity.chapter.url_title]
             )
 
-        if activity.kind == 10:
+        if activity.kind in [4, 10]:
             link_text = book.title
-            link_url = '.'
+            link_url = reverse(
+                'reader:infopage',
+                args=[book.url_title]
+            )
 
         if activity.kind == 13:
             link_text = filename = jsonlookup(activity.args, 'filename')
@@ -79,16 +86,23 @@ def verbose_activity(activity):
             )
 
         activity_dict = dict(
-            verbose=verbose, 
-            image_url=default_image, 
+            verbose=verbose,
+            image_url=default_image,
             modified=activity.modified,
             user=activity.user,
             book=book,
+            kind=activity.kind
         )
 
         if link_url:
             activity_dict['link_url'] = link_url
-            activity_dict['link_text'] = '"%s"' % link_text
+            activity_dict['link_text'] = '%s' % link_text
+
+        if not 'link_text' in activity_dict and activity.kind != 4:
+            try:
+                activity_dict['link_text'] = json.loads(activity.args).values()[0]
+            except:
+                activity_dict['link_text'] = ''
 
         return activity_dict
 

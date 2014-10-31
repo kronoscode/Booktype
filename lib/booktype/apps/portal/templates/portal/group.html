@@ -24,7 +24,13 @@
 
                      <div class="box-bottom-white">
                         {% if request.user.is_authenticated %}
-                            {% if am_I_a_member == 0 %} 
+                            {% if user.is_superuser or is_group_admin %}
+                            <button class="btn btn-default float-right btn-delete-group" data-remote="{% url 'portal:delete_group' user_group.url_name %}" data-toggle="modal" data-target="#groupDeleteModal">
+                                {% trans "DELETE GROUP" %}
+                            </button>
+                            {% endif %}
+
+                            {% if not am_I_a_member %}
                                 <button group-name-url="{% url "portal:group" user_group.url_name %}" role="button" class="btn btn-default float-left join-group-button" rel="tooltip" title="" data-placement="bottom" data-original-title="{% trans "Join this group" %}">{% trans "JOIN THIS GROUP" %}</button>
                             {% else %}
                                 {% if not is_group_admin %}
@@ -63,7 +69,7 @@
                                         {% if request.user.is_authenticated %}
                                             <div class="btn-group float-right">
                                                 <a class="btn btn-xs" rel="tooltip" title="" data-placement="bottom" data-original-title="{% trans "Edit Book" %}" data-toggle="modal" href="{% url "edit:editor" book.url_title %}"><i class="icon-pencil"></i></a>
-                                                <a class="btn btn-xs" rel="tooltip" title="" data-placement="bottom" data-original-title="{% trans "View Book" %}" href="{% url "accounts:view_profile" request.user.username %}" target="_blank"><i class="icon-eye-open"></i></a>
+                                                <a class="btn btn-xs" rel="tooltip" title="" data-placement="bottom" data-original-title="{% trans "View Book" %}" href="{% url 'reader:infopage' book.url_title %}" target="_blank"><i class="icon-eye-open"></i></a>
                                                 <a class="btn btn-xs" rel="tooltip" title="" data-placement="bottom" data-original-title="{% trans "Delete Book" %}" href="{% url "accounts:view_profile"    request.user.username %}"><i class="icon-trash"></i></a>
                                             </div>
                                         {% endif %}
@@ -81,23 +87,21 @@
             </div>
 
             <div class="col-xs-4">
+                {% if not request.user.is_authenticated %}
                 <div class="login-widget box gray">
                     <script>
                         $(function() {
                             $("#formsignin").booktypeSignin({'url': '{% url "accounts:signin" %}'});
                         });
                     </script>                       
-                    {% if request.user.is_authenticated %}
-                        {% include "account/form_signedin.html" %}
-                    {% else %}
                         <div class="signin-block">
                             {% include "account/form_signin.html" %}
                         </div>
                         <div class="box-bottom-white">
                             <p>{% trans "Not a member? Please fill the " %}<a href="{% url "accounts:signin" %}">{% trans "Registration form" %}</a></p> 
                         </div> 
-                    {% endif %}
                 </div> 
+                {% endif %}
 
                 <div class="box white">
                     <h2 class="box-title">{% trans "Members" %}</h2>
@@ -115,5 +119,7 @@
                 </div>
             </div>
         </div>
-    </div> <!-- End of container -->
+    </div>
+    <div id="groupDeleteModal" class="modal fade cleanModalInfo" tabindex="-1" role="dialog" aria-labelledby="editBookInfoModal" aria-hidden="true">
+    </div>
 {% endblock %}

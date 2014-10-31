@@ -90,7 +90,7 @@
                           <p>
                             {{ activity.verbose }}
                             {% if activity.link_url %}
-                                <a href="{{ activity.link_url }}">{{ activity.link_text }}</a>.
+                                <a href="{{ activity.link_url }}">"{{ activity.link_text }}"</a>.
                             {% endif %}
 
                             <span>#{{ base_activ.book.url_title }}</span>
@@ -103,11 +103,6 @@
         </div>
 
         <div class="col-xs-4">
-            {% if user.is_authenticated %}
-            <div class="box gray">
-                {% include "account/form_signedin.html" %}
-            </div>
-            {% endif %}
 
             <div class="box white">
                 <h2 class="box-title">{% trans "Owner" %}</h2>

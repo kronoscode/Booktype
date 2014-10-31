@@ -47,7 +47,7 @@
 
                 <div class="box white">
                     <h2 class="box-title">
-                        {% trans "Online users" %} <a class="view_all" href="#">{% trans "view all" %}</a>
+                        {% trans "Online users" %}
                     </h2>
                     <ul class="list border-top user-avatar circle">
                         {% for username, books in online_users.items %}
@@ -57,7 +57,7 @@
                                 <img src="{% url "view_profilethumbnail" username %}?width=48" alt="{{ username }}">
                             </figure>
                             <div class="list-info">
-                                <h4><a href="#">{{ username }}</a></h4>
+                                <h4><a href="{% url 'accounts:view_profile' username %}">{{ username }}</a></h4>
                                 <p>
                                     {% trans "Working on:" %}
                                     <a href="{% url 'reader:draft_chapter_page' book.url_title %}">{{ book.title }}</a>
@@ -80,14 +80,14 @@
 
                 <div class="box white">
                     <h2 class="box-title">
-                        {% trans "Most Active Users" %} <a class="view_all" href="#">{% trans "view all" %}</a>
+                        {% trans "Most Active Users" %} <a class="view_all" href="{% url 'control_center:settings' %}#list-of-people">{% trans "view all" %}</a>
                     </h2>
                     <ul class="list border-top user-avatar circle">
                         {% for user in most_active_users %}
                         <li>
                             <figure>{% profile_image user %}</figure>                            
                             <div class="list-info">
-                                <h4><a href="#">{{ user.username }}</a></h4>
+                                <h4><a href="{% url 'accounts:view_profile' user %}">{{ user.username }}</a></h4>
                                 {% if user.username in online_users %}
                                 <p>
                                     {% trans "Working on:" %} <a href="#">“Airtime API auth"</a>
@@ -104,7 +104,7 @@
 
                 <div class="box white">
                     <h2 class="box-title">
-                        {% trans "Latest Books" %} <a class="view_all" href="#">{% trans "view all" %}</a>
+                        {% trans "Latest Books" %} <a class="view_all" href="{% url 'control_center:settings' %}#list-of-books">{% trans "view all" %}</a>
                     </h2>
                     <ul class="list border-top">
                         {% for book in latest_books %}
@@ -124,7 +124,7 @@
 
                 <div class="box white">
                     <h2 class="box-title">
-                        {% trans "Most Active Books" %} <a class="view_all" href="#">{% trans "view all" %}</a>
+                        {% trans "Most Active Books" %}
                     </h2>
                     <ul class="list border-top">
                         {% for book in most_active_books %}

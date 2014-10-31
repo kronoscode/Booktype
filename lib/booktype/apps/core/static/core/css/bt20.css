@@ -1,5 +1,5 @@
 .template {
-	display: none !important;
+  display: none !important;
 }
 
 .bookexists{
@@ -38,10 +38,16 @@
 
 .list-of-pleople li .action-btns{
     padding-top: 5px;
+    text-align: right;
 }
 
 .list-of-pleople li:hover .action-btns{
     display: block !important;
+}
+
+.list-of-pleople li .action-btns .btn{
+    position:static;
+    margin-bottom: 5px;
 }
 
 input[type="checkbox"].form-control:focus,
@@ -60,4 +66,55 @@ input[type="radio"].form-control:focus{
 .book-thumb .control_center_btns,
 .book-list > div:hover .control_center_btns{
     display: none;
+}
+
+.logotext{
+    font-size: 17px;
+    line-height: 40px;
+    padding-left: 78px;
+}
+.logotext a{
+    color: #fff;
+}
+
+.pad20{
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.license-delete{
+    position: relative;
+    top: -60px;
+    left: 428px;
+}
+
+.group-image-removable{
+    width: 247px;
+}
+
+.btn-delete-group{
+    margin-left: 10px;
+}
+
+.group-list h4{
+    margin-right: 135px;
+}
+ 
+#bookcontent img,
+#bookcontent table{
+    max-width: 100%;
+    height: auto;
+}
+
+.box-bottom-white{
+    overflow: inherit;
+}
+.box-bottom-white:after{
+    display: block;
+    clear: both;
+    content: "";
+}
+
+.addBookGroup .modal-dialog .modal-content .modal-body{
+    bottom: 0;
 }

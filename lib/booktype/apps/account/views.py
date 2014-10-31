@@ -66,6 +66,7 @@ class DashboardPageView(BasePageView, DetailView):
         context['books'] = Book.objects.filter(owner=self.object).order_by('title')
         context['licenses'] = License.objects.all().order_by('name')
         context['groups'] = BookiGroup.objects.filter(owner=self.object).order_by('name')
+        context['participating_groups'] = BookiGroup.objects.filter(members=self.object).exclude(owner=self.object).order_by('name')
 
         # get books with user has collaborated with
         book_ids = BookHistory.objects.filter(user=self.object).values_list('book', flat=True).distinct()
@@ -154,15 +155,14 @@ class UserSettingsPage(LoginRequiredMixin, BasePageView, UpdateView):
     def form_valid(self, form):
         user = form.save()
         profile = user.get_profile()
-
         profile.description = form.data.get('aboutyourself', '')
         profile.save()
 
         if form.files.has_key('profile_pic'):
-            try:
-                misc.set_profile_image(user, form.files['profile_pic'])
-            except:
-                pass
+            misc.set_profile_image(user, form.files['profile_pic'])
+        else:
+            if form.data.get('profile_pic_remove', False):
+                profile.remove_image()
 
         try:
             endpoint_config = get_endpoint_or_none("@"+user.username).get_config()
@@ -177,8 +177,9 @@ class UserSettingsPage(LoginRequiredMixin, BasePageView, UpdateView):
         return redirect(self.get_success_url())
 
     def get_initial(self):
+        profile = self.object.get_profile()
         initial = super(self.__class__, self).get_initial()
-        initial['aboutyourself'] = self.object.get_profile().description
+        initial['aboutyourself'] = profile.description
         endpoint = get_endpoint_or_none("@"+self.object.username)
         try:
             endpoint_config = endpoint.get_config()
@@ -186,6 +187,8 @@ class UserSettingsPage(LoginRequiredMixin, BasePageView, UpdateView):
         except Exception:
             initial['notification'] = ''
 
+        if profile.image:
+            initial['profile_pic'] = profile.image.url
         return initial
 
     def get_success_url(self):
