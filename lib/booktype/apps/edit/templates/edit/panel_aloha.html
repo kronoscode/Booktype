@@ -18,7 +18,7 @@
        <div class="modal-content">
          <div class="modal-header">
            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>          
-           {% trans "Find & Replace" %}
+           {% trans "Find &amp; Replace" %}
          </div>
          <div class="modal-body">
            <div class="form-group">
@@ -27,12 +27,14 @@
            <div class="form-group">
              <input type="text" class="form-control" name="replace" placeholder="{% trans "Replace" %}">
            </div> 
+           <div class="checkbox"><label><input type="checkbox" name="match-case">{% trans "Match Case" %}</label></div>
            <span class="msg-report hide" style="color: green">{% trans "Finished" %}</span>
          </div> 
          <div class="modal-footer">
-           <button class="btn btn-default replace-button operation-findandreplace" aria-hidden="true">{% trans "Replace All" %}</button>          
-           <button class="btn btn-default prev-button operation-findandreplace" aria-hidden="true">{% trans "< Prev" %}</button>
-           <button class="btn btn-default next-button operation-findandreplace" aria-hidden="true"></button>           
+           <button class="btn btn-default replace-button operation-findandreplace" aria-hidden="true">{% trans "Replace" %}</button>
+           <button class="btn btn-default replace-all-button operation-findandreplace" aria-hidden="true">{% trans "Replace All" %}</button>
+           <button class="btn btn-default prev-button operation-findandreplace" aria-hidden="true">{% trans "&lt; Prev" %}</button>
+           <button class="btn btn-default next-button operation-findandreplace" aria-hidden="true">{% trans "Next $gt;" %}</button>
          </div>
        </div>
    </div>
